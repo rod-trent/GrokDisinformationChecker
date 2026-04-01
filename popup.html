@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Grok Disinformation Checker</title>
+  <style>
+    /* ── Design tokens — dark (default) ── */
+    :root {
+      --bg:       #0f172a;
+      --surface:  #1e293b;
+      --surface2: #334155;
+      --border:   #475569;
+      --text:     #f1f5f9;
+      --muted:    #94a3b8;
+      --accent:   #6366f1;
+      --accent-h: #818cf8;
+      --green:    #22c55e;
+      --yellow:   #eab308;
+      --orange:   #f97316;
+      --red:      #ef4444;
+      --radius:   10px;
+    }
+
+    /* ── Light theme overrides ── */
+    [data-theme="light"] {
+      --bg:       #f0f4f8;
+      --surface:  #ffffff;
+      --surface2: #e8edf3;
+      --border:   #cbd5e1;
+      --text:     #0f172a;
+      --muted:    #64748b;
+      --accent:   #4f46e5;
+      --accent-h: #6366f1;
+      --green:    #16a34a;
+      --yellow:   #a16207;
+      --orange:   #c2410c;
+      --red:      #dc2626;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 520px;
+      min-height: 240px;
+      max-height: 680px;
+      overflow-y: auto;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 14px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-left   { display: flex; align-items: center; gap: 9px; }
+    .logo {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; flex-shrink: 0;
+    }
+    .title    { font-weight: 700; font-size: 13px; line-height: 1.2; }
+    .subtitle { font-size: 10px; color: var(--muted); }
+    .icon-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); padding: 4px; border-radius: 6px;
+      font-size: 16px; display: flex; align-items: center;
+      transition: background .15s, color .15s;
+    }
+    .icon-btn:hover { background: var(--surface2); color: var(--text); }
+
+    /* ── Current-page URL strip ── */
+    .page-url {
+      font-size: 10px; color: var(--muted);
+      padding: 5px 14px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      flex: 1; padding: 9px 4px; text-align: center;
+      cursor: pointer; font-size: 11px; font-weight: 600;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      transition: color .2s, border-color .2s;
+      user-select: none;
+    }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ── Panels ── */
+    .panel { display: none; padding: 14px; }
+    .panel.active { display: block; }
+
+    /* ── Buttons ── */
+    .btn-group { display: flex; gap: 8px; margin-bottom: 14px; }
+    .btn {
+      flex: 1; padding: 10px 10px;
+      border: none; border-radius: var(--radius);
+      cursor: pointer; font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all .2s;
+    }
+    .btn-primary   { background: var(--accent); color: #fff; }
+    .btn-primary:hover  { background: var(--accent-h); }
+    .btn-primary:disabled  { opacity: .45; cursor: not-allowed; }
+    .btn-secondary { background: var(--surface2); color: var(--text); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-secondary:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-sm { flex: unset; padding: 6px 12px; font-size: 11px; }
+
+    /* ── No-key warning ── */
+    .setup-warning {
+      background: rgba(234,179,8,.12);
+      border: 1px solid rgba(234,179,8,.35);
+      border-radius: var(--radius);
+      padding: 11px 13px;
+      font-size: 12px; color: #fde68a;
+      margin-bottom: 14px; line-height: 1.5;
+    }
+    .setup-warning a { color: var(--yellow); font-weight: 700; cursor: pointer; }
+
+    /* ── Trust-score ring ── */
+    .trust-card {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .score-ring {
+      position: relative; width: 82px; height: 82px; flex-shrink: 0;
+    }
+    .score-ring svg { transform: rotate(-90deg); }
+    .score-ring .track  { fill: none; stroke: var(--surface2); stroke-width: 7; }
+    .score-ring .fill   {
+      fill: none; stroke-width: 7; stroke-linecap: round;
+      transition: stroke-dashoffset 1.1s ease, stroke .5s;
+    }
+    .score-text {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .score-number { font-size: 24px; font-weight: 800; line-height: 1; }
+    .score-label  { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+    .score-info { flex: 1; min-width: 0; }
+
+    /* ── Risk badge ── */
+    .risk-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 10px; font-weight: 800;
+      text-transform: uppercase; letter-spacing: .6px;
+      margin-bottom: 7px;
+    }
+    .risk-LOW      { background: rgba(34,197,94,.18);  color: var(--green);  }
+    .risk-MEDIUM   { background: rgba(234,179,8,.18);  color: var(--yellow); }
+    .risk-HIGH     { background: rgba(249,115,22,.18); color: var(--orange); }
+    .risk-CRITICAL { background: rgba(239,68,68,.18);  color: var(--red);    }
+
+    .score-summary { font-size: 12px; color: var(--muted); line-height: 1.55; }
+
+    /* ── Analysis-type tag ── */
+    .analysis-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--surface2); border-radius: 5px;
+      padding: 3px 9px; font-size: 10px; color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    /* ── Section title ── */
+    .section-title {
+      font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .6px;
+      color: var(--muted); margin-bottom: 8px;
+    }
+
+    /* ── Issue cards ── */
+    .issues-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .issue-item {
+      background: var(--surface);
+      border-radius: var(--radius); padding: 10px 12px;
+      border-left: 3px solid var(--border);
+    }
+    .issue-claim   { font-weight: 700; font-size: 12px; margin-bottom: 4px; }
+    .issue-verdict { font-size: 11px; color: var(--muted); line-height: 1.45; }
+    .issue-source  { font-size: 10px; color: var(--accent); margin-top: 5px; }
+
+    /* ── Recommendation ── */
+    .recommendation {
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      font-size: 12px; color: var(--muted); line-height: 1.55;
+      margin-bottom: 14px;
+      border-left: 3px solid var(--accent);
+    }
+
+    /* ── Action row ── */
+    .action-row { display: flex; gap: 8px; margin-bottom: 4px; }
+
+    /* ── Loading / Status ── */
+    .status-view {
+      text-align: center; padding: 30px 14px; color: var(--muted);
+    }
+    .spinner {
+      width: 34px; height: 34px;
+      border: 3px solid var(--surface2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+      margin: 0 auto 13px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status-sub { font-size: 10px; margin-top: 7px; color: var(--border); }
+
+    /* ── Error ── */
+    .error-box {
+      background: rgba(239,68,68,.1);
+      border: 1px solid rgba(239,68,68,.3);
+      border-radius: var(--radius);
+      padding: 12px; font-size: 12px; color: #fca5a5; line-height: 1.5;
+    }
+    .error-box a { color: var(--accent); cursor: pointer; }
+
+    /* ── History panel ── */
+    .history-list { display: flex; flex-direction: column; gap: 7px; }
+    .history-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface); border-radius: var(--radius);
+      padding: 10px 12px; cursor: pointer;
+      transition: background .15s;
+    }
+    .history-item:hover { background: var(--surface2); }
+    .hist-score {
+      width: 38px; height: 38px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 12px; flex-shrink: 0;
+    }
+    .hist-info { flex: 1; min-width: 0; }
+    .hist-url  { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hist-date { font-size: 10px; color: var(--muted); margin-top: 2px; }
+    .hist-risk { font-size: 10px; font-weight: 800; text-transform: uppercase; }
+
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 36px 14px; color: var(--muted); }
+    .empty-icon  { font-size: 34px; margin-bottom: 10px; }
+    .empty-text  { font-size: 12px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">🔍</div>
+      <div>
+        <div class="title">Disinformation Checker</div>
+        <div class="subtitle">Powered by Grok AI + Live Search</div>
+      </div>
+    </div>
+    <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+  </div>
+
+  <!-- Active page URL -->
+  <div class="page-url" id="pageUrl">Loading…</div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" data-tab="analyze">🔬 Analyze</div>
+    <div class="tab"        data-tab="history">🕐 History</div>
+  </div>
+
+  <!-- ── Analyze panel ── -->
+  <div class="panel active" id="panel-analyze">
+
+    <!-- No API key warning -->
+    <div id="noApiKey" class="setup-warning" style="display:none">
+      ⚠️ No API key set. <a id="setupLink">Configure your Grok API key →</a>
+    </div>
+
+    <!-- Action buttons -->
+    <div class="btn-group" id="actionButtons">
+      <button class="btn btn-primary"   id="checkPage">📄 Check Full Page</button>
+      <button class="btn btn-secondary" id="checkSelection" style="display:none">✂️ Check Selection</button>
+    </div>
+
+    <!-- Dynamic result area -->
+    <div id="resultArea"></div>
+
+  </div>
+
+  <!-- ── History panel ── -->
+  <div class="panel" id="panel-history">
+    <div class="history-list" id="historyList"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

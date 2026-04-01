@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy – Grok Disinformation Checker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      padding: 48px 20px 72px;
+    }
+    .container { max-width: 720px; margin: 0 auto; }
+    header { margin-bottom: 36px; }
+    header h1 { font-size: 26px; font-weight: 800; color: #0f172a; }
+    .date { font-size: 13px; color: #64748b; margin-top: 6px; }
+
+    .highlight {
+      background: #eff6ff;
+      border-left: 4px solid #6366f1;
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      font-size: 14px; color: #334155; line-height: 1.65;
+      margin-bottom: 36px;
+    }
+
+    h2 {
+      font-size: 16px; font-weight: 700; color: #0f172a;
+      margin: 32px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    p, li { font-size: 14px; color: #475569; line-height: 1.75; }
+    ul, ol { padding-left: 22px; margin-top: 6px; }
+    li { margin-bottom: 6px; }
+
+    a { color: #6366f1; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    code {
+      background: #f1f5f9; border: 1px solid #e2e8f0;
+      border-radius: 4px; padding: 1px 6px;
+      font-size: 13px; font-family: monospace;
+      color: #334155;
+    }
+
+    .toc {
+      background: #f1f5f9; border-radius: 8px;
+      padding: 16px 20px; margin-bottom: 28px;
+    }
+    .toc p  { font-weight: 700; font-size: 13px; color: #334155; margin-bottom: 8px; }
+    .toc ol { font-size: 13px; }
+    .toc a  { color: #6366f1; }
+
+    footer {
+      margin-top: 48px; padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 12px; color: #94a3b8; text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Privacy Policy</h1>
+    <div class="date">Grok Disinformation Checker &nbsp;·&nbsp; Last updated: March 2026</div>
+  </header>
+
+  <div class="highlight">
+    <strong>Plain-English Summary:</strong> This extension reads page content
+    <em>only when you ask it to</em>, then sends that content to the Grok AI API for analysis.
+    No data is collected by the extension developer. Your API key lives only in your own browser.
+    You can delete everything at any time from the Settings page.
+  </div>
+
+  <div class="toc">
+    <p>Contents</p>
+    <ol>
+      <li><a href="#data-accessed">What Data We Access</a></li>
+      <li><a href="#how-used">How Your Data Is Used</a></li>
+      <li><a href="#storage">Data Storage</a></li>
+      <li><a href="#third-party">Third-Party Services</a></li>
+      <li><a href="#permissions">Permissions Explained</a></li>
+      <li><a href="#retention">Data Retention</a></li>
+      <li><a href="#children">Children's Privacy</a></li>
+      <li><a href="#changes">Changes to This Policy</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ol>
+  </div>
+
+  <!-- 1 -->
+  <h2 id="data-accessed">1. What Data We Access</h2>
+  <p>Grok Disinformation Checker accesses the following data, strictly on demand:</p>
+  <ul>
+    <li>
+      <strong>Page text content</strong> — the visible text of the active browser tab,
+      extracted only when you click <em>Check Full Page</em> or use the keyboard shortcut
+      (Alt+Shift+G).
+    </li>
+    <li>
+      <strong>Selected text</strong> — text you have highlighted on a page, only when you
+      click <em>Check Selection</em> or use the right-click context menu option.
+    </li>
+    <li>
+      <strong>Your Grok API key</strong> — entered by you in Settings and stored in
+      <code>chrome.storage.sync</code>.
+    </li>
+    <li>
+      <strong>Analysis history</strong> — the results of previous analyses you have run,
+      stored in <code>chrome.storage.local</code> on your device.
+    </li>
+  </ul>
+  <p>
+    The extension does <strong>not</strong> collect passwords, form data, browsing history,
+    cookies, geolocation, or any other personal information.
+  </p>
+
+  <!-- 2 -->
+  <h2 id="how-used">2. How Your Data Is Used</h2>
+  <ul>
+    <li>
+      Page or selected text is sent <strong>directly and exclusively</strong> to the
+      <a href="https://x.ai" target="_blank">xAI</a> Grok API
+      (<code>https://api.x.ai</code>) to perform the disinformation analysis you requested.
+    </li>
+    <li>
+      Your API key is used solely to authenticate those requests. It is never logged,
+      shared, or sent anywhere other than <code>api.x.ai</code>.
+    </li>
+    <li>
+      The extension developer <strong>does not receive, store, or have access to</strong>
+      any of the above data.
+    </li>
+    <li>
+      Data submitted to the Grok API is subject to
+      <a href="https://x.ai/legal/privacy-policy" target="_blank">xAI's Privacy Policy</a>.
+      Please review it before use.
+    </li>
+  </ul>
+
+  <!-- 3 -->
+  <h2 id="storage">3. Data Storage</h2>
+  <ul>
+    <li>
+      <strong>API key &amp; settings</strong> are stored in <code>chrome.storage.sync</code>.
+      Chrome and Edge may sync this data across your signed-in devices via your browser account.
+      You can clear it at any time in the extension's Settings page.
+    </li>
+    <li>
+      <strong>Analysis history</strong> (up to the last 20 results) is stored in
+      <code>chrome.storage.local</code> on the current device only and is never synced.
+    </li>
+    <li>
+      No data is written to disk outside of these browser storage APIs.
+    </li>
+    <li>
+      Uninstalling the extension removes all locally stored data automatically.
+    </li>
+  </ul>
+
+  <!-- 4 -->
+  <h2 id="third-party">4. Third-Party Services</h2>
+  <p>
+    This extension communicates <strong>only</strong> with the xAI Grok API at
+    <code>https://api.x.ai</code>. No other external connections are made.
+    Please review <a href="https://x.ai/legal/privacy-policy" target="_blank">xAI's
+    Privacy Policy</a> and <a href="https://x.ai/legal/terms-of-service" target="_blank">Terms
+    of Service</a> to understand how xAI handles content submitted to their API.
+  </p>
+
+  <!-- 5 -->
+  <h2 id="permissions">5. Permissions Explained</h2>
+  <ul>
+    <li>
+      <strong>activeTab</strong> — allows the extension to read the content of the
+      <em>currently active tab</em>, only when you initiate an analysis.
+    </li>
+    <li>
+      <strong>scripting</strong> — used to extract visible text from the active tab's DOM
+      when you request an analysis.
+    </li>
+    <li>
+      <strong>storage</strong> — used to store your API key, settings, and local history
+      inside your browser.
+    </li>
+    <li>
+      <strong>contextMenus</strong> — adds a right-click menu option so you can quickly
+      check highlighted text without opening the popup.
+    </li>
+  </ul>
+  <p>No "broad host permissions" are requested; the only allowed host is
+  <code>https://api.x.ai/*</code>.</p>
+
+  <!-- 6 -->
+  <h2 id="retention">6. Data Retention</h2>
+  <p>
+    Analysis history is kept until you manually clear it via
+    <em>Settings → Clear History</em>, or until you uninstall the extension.
+    API keys and settings persist until you clear them in Settings or uninstall.
+    There is no server-side retention because no data is sent to any developer-controlled
+    server.
+  </p>
+
+  <!-- 7 -->
+  <h2 id="children">7. Children's Privacy</h2>
+  <p>
+    This extension is not directed at children under the age of 13 (or the applicable age
+    in your jurisdiction). We do not knowingly process data from children. If you believe
+    a child has used this extension in a way that concerns you, please contact us.
+  </p>
+
+  <!-- 8 -->
+  <h2 id="changes">8. Changes to This Policy</h2>
+  <p>
+    We may update this Privacy Policy as the extension evolves. The current version is
+    always available within the extension and at the project's GitHub repository:
+    <a href="https://github.com/rod-trent/GrokDisinformationChecker" target="_blank">
+      github.com/rod-trent/GrokDisinformationChecker
+    </a>.
+    Continued use of the extension after an update constitutes acceptance of the revised policy.
+  </p>
+
+  <!-- 9 -->
+  <h2 id="contact">9. Contact</h2>
+  <p>
+    Questions, concerns, or requests regarding this Privacy Policy? Please open an issue at:
+    <br>
+    <a href="https://github.com/rod-trent/GrokDisinformationChecker/issues" target="_blank">
+      github.com/rod-trent/GrokDisinformationChecker/issues
+    </a>
+  </p>
+
+  <footer>
+    Grok Disinformation Checker &nbsp;·&nbsp; v1.1.0 &nbsp;·&nbsp;
+    <a href="https://github.com/rod-trent/GrokDisinformationChecker" target="_blank">GitHub</a>
+  </footer>
+
+</div>
+</body>
+</html>

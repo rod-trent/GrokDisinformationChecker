@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Grok Disinformation Checker – Settings</title>
+  <style>
+    /* ── Dark theme (default) ── */
+    :root {
+      --bg:        #0f172a;
+      --surface:   #1e293b;
+      --surface2:  #334155;
+      --border:    #475569;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --accent:    #6366f1;
+      --accent-h:  #818cf8;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --yellow:    #eab308;
+      --radius:    10px;
+    }
+
+    /* ── Light theme overrides ── */
+    [data-theme="light"] {
+      --bg:        #f0f4f8;
+      --surface:   #ffffff;
+      --surface2:  #e8edf3;
+      --border:    #cbd5e1;
+      --text:      #0f172a;
+      --muted:     #64748b;
+      --accent:    #4f46e5;
+      --accent-h:  #6366f1;
+      --green:     #16a34a;
+      --red:       #dc2626;
+      --yellow:    #a16207;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px 60px;
+    }
+
+    .container { width: 100%; max-width: 580px; }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+    .logo {
+      width: 44px; height: 44px;
+      background: var(--accent);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+    .header h1 { font-size: 20px; font-weight: 700; }
+    .header p  { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      margin-bottom: 16px;
+    }
+    .card-title {
+      font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; gap: 7px;
+      margin-bottom: 18px;
+      color: var(--text);
+    }
+
+    /* ── Info box ── */
+    .info-box {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 18px;
+    }
+    .info-box a { color: var(--accent); text-decoration: none; }
+    .info-box a:hover { text-decoration: underline; }
+
+    /* ── Form elements ── */
+    label.field-label {
+      display: block;
+      font-size: 11px; font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 6px;
+    }
+
+    .input-wrap { position: relative; margin-bottom: 18px; }
+
+    input[type="text"],
+    input[type="password"],
+    select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 44px 10px 13px;
+      color: var(--text);
+      font-size: 13px;
+      font-family: monospace;
+      outline: none;
+      transition: border-color .2s;
+      appearance: none;
+    }
+    select { font-family: inherit; padding-right: 13px; cursor: pointer; }
+    input:focus, select:focus { border-color: var(--accent); }
+
+    .eye-btn {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 16px; padding: 4px;
+      line-height: 1;
+    }
+    .eye-btn:hover { color: var(--text); }
+
+    /* ── Button row ── */
+    .btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    .btn {
+      padding: 9px 18px;
+      border: none; border-radius: 8px;
+      cursor: pointer; font-size: 12px; font-weight: 600;
+      transition: all .2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary   { background: var(--accent); color: #fff; }
+    .btn-primary:hover  { background: var(--accent-h); }
+    .btn-outline   { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+    .btn-outline:hover  { border-color: var(--muted); color: var(--text); }
+    .btn-danger    { background: transparent; border: 1px solid rgba(239,68,68,.4); color: var(--red); }
+    .btn-danger:hover   { background: rgba(239,68,68,.1); }
+
+    /* ── Status message ── */
+    .status-msg {
+      font-size: 12px; margin-top: 12px;
+      min-height: 18px; transition: opacity .3s;
+    }
+    .status-msg.success { color: var(--green); }
+    .status-msg.error   { color: var(--red); }
+    .status-msg.info    { color: var(--muted); }
+
+    /* ── Setting rows ── */
+    .setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+    }
+    .setting-row:last-of-type { border-bottom: none; }
+    .setting-text .label { font-size: 13px; font-weight: 500; }
+    .setting-text .desc  { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.4; }
+
+    /* ── Toggle switch ── */
+    .toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: var(--surface2); border-radius: 12px;
+      cursor: pointer; transition: background .3s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px;
+      left: 3px; top: 3px;
+      background: var(--muted); border-radius: 50%;
+      transition: transform .3s, background .3s;
+    }
+    .toggle input:checked + .toggle-slider               { background: var(--accent); }
+    .toggle input:checked + .toggle-slider::before       { transform: translateX(18px); background: #fff; }
+
+    /* ── select within a row ── */
+    .row-select {
+      padding: 6px 10px;
+      font-size: 12px;
+      width: auto;
+      min-width: 180px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 28px;
+      line-height: 1.8;
+    }
+    .footer a { color: var(--accent); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* ── Theme picker (segmented control) ── */
+    .theme-picker {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .theme-btn {
+      flex: 1;
+      padding: 6px 13px;
+      background: transparent;
+      border: none;
+      border-right: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+      transition: background .15s, color .15s;
+      white-space: nowrap;
+    }
+    .theme-btn:last-child { border-right: none; }
+    .theme-btn:hover:not(.active) { background: var(--surface2); color: var(--text); }
+    .theme-btn.active { background: var(--accent); color: #fff; font-weight: 700; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">🔍</div>
+    <div>
+      <h1>Disinformation Checker</h1>
+      <p>Settings &amp; Configuration</p>
+    </div>
+  </div>
+
+  <!-- API Key Card -->
+  <div class="card">
+    <div class="card-title">🔑 Grok API Key</div>
+
+    <div class="info-box">
+      Get your free API key from <a href="https://console.x.ai" target="_blank">console.x.ai</a>.
+      Your key is stored only in your browser's synced storage
+      (<code>chrome.storage.sync</code>) and is sent <strong>only</strong>
+      to the Grok API — never to any other server.
+    </div>
+
+    <label class="field-label" for="apiKeyInput">API Key</label>
+    <div class="input-wrap">
+      <input type="password" id="apiKeyInput"
+             placeholder="xai-xxxxxxxxxxxxxxxxxxxxxxxx"
+             autocomplete="off" spellcheck="false">
+      <button class="eye-btn" id="toggleVisibility" title="Show / hide key">👁️</button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary"  id="saveKeyBtn">💾 Save Key</button>
+      <button class="btn btn-outline"  id="testBtn">🧪 Test Connection</button>
+      <button class="btn btn-outline"  id="clearKeyBtn">🗑️ Clear</button>
+    </div>
+    <div class="status-msg" id="keyStatus"></div>
+  </div>
+
+  <!-- Analysis Settings Card -->
+  <div class="card">
+    <div class="card-title">⚙️ Analysis Settings</div>
+
+    <!-- Model -->
+    <div class="setting-row">
+      <div class="setting-text">
+        <div class="label">AI Model</div>
+        <div class="desc">Model used for every analysis (affects speed &amp; API cost)</div>
+      </div>
+      <select id="modelSelect" class="row-select">
+        <option value="grok-4-fast-reasoning">Grok 4 Fast Reasoning (Default)</option>
+        <option value="grok-4">Grok 4</option>
+        <option value="grok-3-fast">Grok 3 Fast (no Live Search)</option>
+        <option value="grok-3">Grok 3 (no Live Search)</option>
+        <option value="grok-2-1212">Grok 2 (no Live Search)</option>
+      </select>
+    </div>
+
+    <!-- Live Search -->
+    <div class="setting-row">
+      <div class="setting-text">
+        <div class="label">Live Search</div>
+        <div class="desc">Let Grok search the web in real time to verify claims (uses xAI Agent Tools API)</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="liveSearch" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- Auto-detect selection -->
+    <div class="setting-row">
+      <div class="setting-text">
+        <div class="label">Auto-detect Selected Text</div>
+        <div class="desc">Show "Check Selection" button when text is highlighted on a page</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="autoDetectSelection" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- Show badge -->
+    <div class="setting-row">
+      <div class="setting-text">
+        <div class="label">Show Trust-Score Badge</div>
+        <div class="desc">Display the trust score on the extension toolbar icon after analysis</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="showBadge" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- Appearance / Theme -->
+    <div class="setting-row">
+      <div class="setting-text">
+        <div class="label">Appearance</div>
+        <div class="desc">Color theme for the popup and settings page</div>
+      </div>
+      <div class="theme-picker" id="themePicker">
+        <button class="theme-btn" data-theme="system">⚙ System</button>
+        <button class="theme-btn" data-theme="light">☀ Light</button>
+        <button class="theme-btn" data-theme="dark">🌙 Dark</button>
+      </div>
+    </div>
+
+    <div style="margin-top: 18px;">
+      <button class="btn btn-primary" id="saveSettingsBtn">💾 Save Settings</button>
+    </div>
+    <div class="status-msg" id="settingsStatus"></div>
+  </div>
+
+  <!-- Data & Privacy Card -->
+  <div class="card">
+    <div class="card-title">🗂️ Data &amp; Privacy</div>
+
+    <div class="setting-row">
+      <div class="setting-text">
+        <div class="label">Analysis History</div>
+        <div class="desc">Stored locally — up to the last 20 analyses</div>
+      </div>
+      <button class="btn btn-danger" id="clearHistoryBtn">Clear History</button>
+    </div>
+
+    <div class="setting-row">
+      <div class="setting-text">
+        <div class="label">All Extension Data</div>
+        <div class="desc">Remove API key, settings, and history from this browser</div>
+      </div>
+      <button class="btn btn-danger" id="clearAllBtn">Clear Everything</button>
+    </div>
+    <div class="status-msg" id="dataStatus"></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    Grok Disinformation Checker v1.1.0 &nbsp;·&nbsp;
+    <a href="https://github.com/rod-trent/GrokDisinformationChecker" target="_blank">GitHub</a>
+    &nbsp;·&nbsp;
+    <a href="privacy.html" target="_blank">Privacy Policy</a>
+    &nbsp;·&nbsp;
+    Shortcut: <strong>Alt+Shift+G</strong>
+  </div>
+
+</div>
+<script src="options.js"></script>
+</body>
+</html>

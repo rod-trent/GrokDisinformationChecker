@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Icon Generator – Grok Disinformation Checker</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f1f5f9; color: #1e293b;
+      padding: 40px 24px;
+    }
+    h2 { font-size: 20px; margin-bottom: 8px; }
+    p  { font-size: 14px; color: #64748b; margin-bottom: 28px; line-height: 1.6; }
+    .icons { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-end; }
+    .icon-wrap {
+      text-align: center;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 20px 24px;
+    }
+    canvas { display: block; margin: 0 auto 10px; border-radius: 20%; }
+    .size  { font-size: 12px; color: #64748b; margin-bottom: 8px; }
+    button {
+      padding: 7px 18px; border: none; border-radius: 7px;
+      background: #6366f1; color: #fff; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background .2s;
+    }
+    button:hover { background: #818cf8; }
+    .instructions {
+      margin-top: 36px;
+      background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+      padding: 20px 24px; max-width: 560px;
+    }
+    .instructions h3 { font-size: 15px; margin-bottom: 10px; }
+    .instructions ol { font-size: 14px; color: #475569; padding-left: 18px; line-height: 2; }
+    code {
+      background: #f1f5f9; border: 1px solid #e2e8f0;
+      border-radius: 4px; padding: 1px 6px; font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🎨 Icon Generator – Grok Disinformation Checker</h2>
+  <p>
+    Open this file in any browser. Click each <strong>Download</strong> button and save
+    the file into the <code>icons/</code> subfolder of the extension directory.
+  </p>
+
+  <div class="icons">
+    <div class="icon-wrap">
+      <canvas id="c16"  width="16"  height="16"></canvas>
+      <div class="size">16 × 16</div>
+      <button onclick="dl('c16',  'icon16.png')">⬇ Download</button>
+    </div>
+    <div class="icon-wrap">
+      <canvas id="c32"  width="32"  height="32"></canvas>
+      <div class="size">32 × 32</div>
+      <button onclick="dl('c32',  'icon32.png')">⬇ Download</button>
+    </div>
+    <div class="icon-wrap">
+      <canvas id="c48"  width="48"  height="48"></canvas>
+      <div class="size">48 × 48</div>
+      <button onclick="dl('c48',  'icon48.png')">⬇ Download</button>
+    </div>
+    <div class="icon-wrap">
+      <canvas id="c128" width="128" height="128"></canvas>
+      <div class="size">128 × 128</div>
+      <button onclick="dl('c128', 'icon128.png')">⬇ Download</button>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <h3>📁 Installation Steps</h3>
+    <ol>
+      <li>Download each icon using the buttons above.</li>
+      <li>Create a folder named <code>icons</code> inside the extension directory.</li>
+      <li>
+        Place the downloaded files in that folder so the paths become:<br>
+        <code>icons/icon16.png</code>, <code>icons/icon32.png</code>,
+        <code>icons/icon48.png</code>, <code>icons/icon128.png</code>
+      </li>
+      <li>Reload the extension in Chrome/Edge (<code>chrome://extensions</code>).</li>
+    </ol>
+  </div>
+
+  <script>
+    // ── Draw icon on a canvas ──────────────────────────────────
+    function drawIcon(id) {
+      const canvas = document.getElementById(id);
+      const ctx    = canvas.getContext('2d');
+      const s      = canvas.width;        // shorthand for size
+      const r      = s * 0.14;            // corner radius
+
+      // Background gradient (indigo)
+      const grad = ctx.createLinearGradient(0, 0, s, s);
+      grad.addColorStop(0, '#4f46e5');
+      grad.addColorStop(1, '#818cf8');
+
+      // Rounded-rect background
+      ctx.beginPath();
+      ctx.moveTo(r, 0);
+      ctx.lineTo(s - r, 0);
+      ctx.quadraticCurveTo(s, 0, s, r);
+      ctx.lineTo(s, s - r);
+      ctx.quadraticCurveTo(s, s, s - r, s);
+      ctx.lineTo(r, s);
+      ctx.quadraticCurveTo(0, s, 0, s - r);
+      ctx.lineTo(0, r);
+      ctx.quadraticCurveTo(0, 0, r, 0);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // ── Magnifying glass ──
+      ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+      ctx.lineWidth   = Math.max(1, s * 0.095);
+      ctx.lineCap     = 'round';
+
+      const cx = s * 0.42;
+      const cy = s * 0.42;
+      const cr = s * 0.20;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Handle
+      const angle = Math.PI * 0.75;
+      ctx.beginPath();
+      ctx.moveTo(cx + cr * Math.cos(angle), cy + cr * Math.sin(angle));
+      ctx.lineTo(
+        cx + (cr + s * 0.19) * Math.cos(angle),
+        cy + (cr + s * 0.19) * Math.sin(angle)
+      );
+      ctx.stroke();
+
+      // ── Tick / checkmark inside circle (only at ≥ 32 px) ──
+      if (s >= 32) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.80)';
+        ctx.lineWidth   = Math.max(1, s * 0.07);
+        ctx.beginPath();
+        ctx.moveTo(cx - cr * 0.38, cy + cr * 0.05);
+        ctx.lineTo(cx - cr * 0.08, cy + cr * 0.38);
+        ctx.lineTo(cx + cr * 0.42, cy - cr * 0.28);
+        ctx.stroke();
+      }
+    }
+
+    // Render all canvases on load
+    ['c16', 'c32', 'c48', 'c128'].forEach(drawIcon);
+
+    // Download helper
+    function dl(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const a = document.createElement('a');
+      a.download = filename;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    }
+  </script>
+</body>
+</html>

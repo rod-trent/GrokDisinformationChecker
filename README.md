@@ -6,6 +6,8 @@ A browser extension for **Chrome** and **Microsoft Edge** that instantly analyze
 
 ---
 
+**NOTE:** You can also install this from the Google Chrome Web store: https://chromewebstore.google.com/detail/grok-disinformation-check/fcigpopdcbiilnkdidokpmkcehemeljl
+
 ## ✨ Features
 
 | Feature | Description |

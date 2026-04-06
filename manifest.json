@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
   "name": "Grok Disinformation Checker",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Instantly analyze any web page or selected text for disinformation and misinformation using Grok AI with real-time live search.",
-  "permissions": ["activeTab", "scripting", "storage", "contextMenus"],
-  "host_permissions": ["https://api.x.ai/*"],
+  "homepage_url": "https://github.com/rod-trent/GrokDisinformationChecker",
+  "permissions": ["activeTab", "scripting", "storage", "contextMenus", "tabs"],
+  "host_permissions": ["https://api.x.ai/*", "<all_urls>"],
   "action": {
     "default_popup": "popup.html",
     "default_title": "Grok Disinformation Checker",

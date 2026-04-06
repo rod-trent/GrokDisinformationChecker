@@ -3,15 +3,17 @@
 // ============================================================
 
 // ── State ────────────────────────────────────────────────────
-let selectionText  = '';
+let selectionText   = '';
 let currentAnalysis = null;
+let currentTabId    = null;
+let analysisTimeoutId = null;
 
 // ── DOM refs ─────────────────────────────────────────────────
-const pageUrlEl        = document.getElementById('pageUrl');
-const noApiKeyEl       = document.getElementById('noApiKey');
-const checkPageBtn     = document.getElementById('checkPage');
+const pageUrlEl         = document.getElementById('pageUrl');
+const noApiKeyEl        = document.getElementById('noApiKey');
+const checkPageBtn      = document.getElementById('checkPage');
 const checkSelectionBtn = document.getElementById('checkSelection');
-const resultArea       = document.getElementById('resultArea');
+const resultArea        = document.getElementById('resultArea');
 
 // ── Theme ─────────────────────────────────────────────────────
 async function applyTheme() {
@@ -25,22 +27,56 @@ async function applyTheme() {
   document.documentElement.setAttribute('data-theme', resolved);
 }
 
+// ── Background message listener (set up before DOMContentLoaded) ─
+// Analysis runs in the service worker and sends results back here.
+chrome.runtime.onMessage.addListener((message) => {
+  // Only act on messages for the tab this popup is showing
+  if (message.tabId !== undefined && message.tabId !== currentTabId) return;
+
+  if (message.type === 'analysisResult') {
+    clearAnalysisTimeout();
+    currentAnalysis = message.result;
+    renderAnalysis(currentAnalysis);
+    setButtons(true);
+  }
+
+  if (message.type === 'analysisError') {
+    clearAnalysisTimeout();
+    showError(message.error);
+    setButtons(true);
+  }
+
+  if (message.type === 'autoCheckStarted') {
+    // Auto-check kicked off by background — show loading if popup is on Analyze tab
+    const analyzePanel = document.getElementById('panel-analyze');
+    if (analyzePanel?.classList.contains('active')) {
+      showLoading('Auto-checking page for disinformation…');
+      setButtons(false);
+    }
+  }
+});
+
+function clearAnalysisTimeout() {
+  if (analysisTimeoutId) { clearTimeout(analysisTimeoutId); analysisTimeoutId = null; }
+}
+
 // ── Boot ─────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', init);
 
 async function init() {
-  // Apply theme before anything renders to avoid a flash
   await applyTheme();
 
-  // Show hostname of active tab
+  // Identify the active tab
+  let tab = null;
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab?.url) {
       const u = new URL(tab.url);
       pageUrlEl.textContent = u.hostname + (u.pathname.length > 1 ? u.pathname.substring(0, 45) : '');
     } else {
       pageUrlEl.textContent = '';
     }
+    if (tab?.id) currentTabId = tab.id;
   } catch { pageUrlEl.textContent = ''; }
 
   // Check API key
@@ -51,7 +87,7 @@ async function init() {
     checkSelectionBtn.disabled = true;
   }
 
-  // Check for a pending action triggered from context menu / keyboard shortcut
+  // Check for a pending action from context menu / keyboard shortcut
   try {
     const { pendingCheck } = await chrome.storage.session.get('pendingCheck');
     if (pendingCheck) {
@@ -59,34 +95,61 @@ async function init() {
       if (pendingCheck.type === 'selection' && pendingCheck.text && apiKey) {
         selectionText = pendingCheck.text;
         checkSelectionBtn.style.display = 'flex';
-        await runAnalysis('selection', selectionText);
+        runAnalysis('selection', selectionText);
         return;
       } else if (pendingCheck.type === 'page' && apiKey) {
-        await runAnalysis('page');
+        runAnalysis('page');
         return;
       }
     }
-  } catch { /* storage.session may not be available in all builds */ }
+  } catch { /* storage.session unavailable in some builds */ }
+
+  // Check if the background already has an in-progress or completed analysis for this tab
+  if (tab?.id) {
+    try {
+      const stored  = await chrome.storage.session.get(`tabState_${tab.id}`);
+      const tabState = stored[`tabState_${tab.id}`];
+
+      if (tabState) {
+        if (tabState.status === 'analyzing') {
+          // Analysis running in background — show loading and wait for message
+          showLoading(tabState.autoCheck ? 'Auto-checking page for disinformation…' : 'Analyzing page content…');
+          setButtons(false);
+          // Timeout safety net in case the service worker is interrupted
+          analysisTimeoutId = setTimeout(() => {
+            showError('Analysis took too long. Please try again.');
+            setButtons(true);
+          }, 120000);
+          return;
+        }
+        if (tabState.status === 'complete' && tabState.result) {
+          currentAnalysis = tabState.result;
+          renderAnalysis(currentAnalysis);
+          return;
+        }
+        if (tabState.status === 'error') {
+          showError(tabState.error || 'Analysis failed. Please try again.');
+          return;
+        }
+      }
+    } catch { /* session storage unavailable */ }
+  }
 
   // Auto-detect selected text on page (respects user setting)
   const { autoDetectSelection } = await chrome.storage.sync.get('autoDetectSelection');
-  if (autoDetectSelection !== false) {
+  if (autoDetectSelection !== false && tab?.id) {
     try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab?.id) {
-        const [{ result }] = await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          func: () => window.getSelection()?.toString() ?? ''
-        });
-        if (result && result.trim().length > 10) {
-          selectionText = result.trim();
-          checkSelectionBtn.style.display = 'flex';
-        }
+      const [{ result }] = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: () => window.getSelection()?.toString() ?? ''
+      });
+      if (result && result.trim().length > 10) {
+        selectionText = result.trim();
+        checkSelectionBtn.style.display = 'flex';
       }
     } catch { /* scripting blocked on some pages */ }
   }
 
-  // Welcome state
   showWelcome();
 }
 
@@ -114,10 +177,10 @@ checkPageBtn.addEventListener('click',      () => runAnalysis('page'));
 checkSelectionBtn.addEventListener('click', () => runAnalysis('selection', selectionText));
 
 // ── Core analysis ─────────────────────────────────────────────
+// Content is extracted here (requires activeTab + user gesture), then the
+// API call is handed off to background.js so it survives the popup closing.
 async function runAnalysis(type, text = null) {
-  const { apiKey, model, liveSearch, showBadge } = await chrome.storage.sync.get(
-    ['apiKey', 'model', 'liveSearch', 'showBadge']
-  );
+  const { apiKey } = await chrome.storage.sync.get('apiKey');
 
   if (!apiKey) {
     showError('No API key configured. Please open Settings and add your Grok API key.');
@@ -128,15 +191,13 @@ async function runAnalysis(type, text = null) {
   showLoading(type === 'selection' ? 'Analyzing selected text…' : 'Analyzing page content…');
 
   try {
-    // ── Gather content ──────────────────────────────────────
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     let content = text;
 
     if (type === 'page') {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       const [{ result: pageText }] = await chrome.scripting.executeScript({
         target: { tabId: tab.id },
         func: () => {
-          // Prefer semantic elements over raw body dump
           const sel = 'article, main, [role="main"], p, h1, h2, h3, h4, h5, li';
           const nodes = document.querySelectorAll(sel);
           let out = '';
@@ -155,164 +216,26 @@ async function runAnalysis(type, text = null) {
       throw new Error('Not enough readable text on this page to analyze. Try a content-rich article or news page.');
     }
 
-    // ── Build prompt ────────────────────────────────────────
-    const typeLabel = type === 'selection' ? 'selected text' : 'web page content';
-    const prompt =
-`Analyze the following ${typeLabel} for disinformation, misinformation, propaganda, or false/misleading claims. Use live search to cross-reference facts where possible.
-
-Respond ONLY with valid JSON — no markdown fences, no extra prose — in exactly this structure:
-{
-  "trustScore": <integer 0–100; 100 = fully trustworthy>,
-  "riskLevel": "<LOW|MEDIUM|HIGH|CRITICAL>",
-  "summary": "<2–3 sentence plain-English overview of your findings>",
-  "issues": [
-    {
-      "claim": "<the specific problematic claim or statement>",
-      "verdict": "<your fact-check verdict>",
-      "source": "<supporting source or reference, or empty string>"
-    }
-  ],
-  "recommendation": "<one concise, actionable sentence for the reader>"
-}
-
-Guidelines:
-- trustScore 80–100 → LOW risk (accurate, well-sourced content)
-- trustScore 50–79  → MEDIUM risk (some unverified or misleading elements)
-- trustScore 30–49  → HIGH risk (significant misinformation present)
-- trustScore 0–29   → CRITICAL risk (severe disinformation)
-- If no issues found, return an empty issues array and trustScore ≥ 80.
-
-Content to analyze:
-${content}`;
-
-    // ── API call ────────────────────────────────────────────
-    // Uses the xAI Responses API (/v1/responses).
-    // Live search on /v1/chat/completions is fully deprecated (HTTP 410).
-    // The Responses API uses `input` instead of `messages`, a top-level
-    // `system` field, and `tools: [{ type: 'web_search' }]` for live search.
-    let usedModel = model || 'grok-4-fast-reasoning';
-
-    // web_search (server-side tools) requires the grok-4 model family.
-    // If the user has selected an older model, automatically upgrade for
-    // this request so live search still works.
-    const useSearch = liveSearch !== false;
-    if (useSearch && !usedModel.startsWith('grok-4')) {
-      usedModel = 'grok-4-fast-reasoning';
-    }
-
-    const requestBody = {
-      model: usedModel,
-      system: 'You are a neutral, expert fact-checking AI assistant. You detect disinformation, misinformation, and false claims with precision. Always respond with valid JSON only, exactly as specified.',
-      input: [
-        { role: 'user', content: prompt }
-      ],
-      temperature: 0.2,
-      max_output_tokens: 1600
-    };
-
-    // Add web_search tool only when Live Search is enabled in Settings
-    if (useSearch) {
-      requestBody.tools = [{ type: 'web_search' }];
-    }
-
-    const resp = await fetch('https://api.x.ai/v1/responses', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(requestBody)
+    // Hand off to background.js — the fetch continues even if popup closes
+    chrome.runtime.sendMessage({
+      type:         'runAnalysis',
+      tabId:        tab.id,
+      analysisType: type,
+      content,
+      url:          tab.url || ''
     });
 
-    if (!resp.ok) {
-      const errBody = await resp.text();
-      if (resp.status === 401) throw new Error('Invalid API key (401). Please check your key in Settings.');
-      if (resp.status === 429) throw new Error('Rate limit reached (429). Please wait a moment and try again.');
-      throw new Error(`API error ${resp.status}: ${errBody.substring(0, 200)}`);
-    }
-
-    const data = await resp.json();
-
-    // ── Extract text from the Responses API reply ──────────
-    // Try every known shape the xAI Responses API may return, most specific first.
-    let raw = '';
-
-    // Shape 1: output[] array with message items containing content[]
-    const msgItems = (data.output || []).filter(o => o.type === 'message');
-    if (msgItems.length) {
-      raw = msgItems
-        .flatMap(o => (o.content || []).filter(c => c.type === 'output_text' || c.type === 'text').map(c => c.text))
-        .join('');
-    }
-
-    // Shape 2: top-level output_text convenience field
-    if (!raw && data.output_text) raw = data.output_text;
-
-    // Shape 3: output[] items that are plain strings
-    if (!raw && Array.isArray(data.output)) {
-      raw = data.output
-        .filter(o => typeof o === 'string')
-        .join('');
-    }
-
-    // Shape 4: fallback to chat-completions style (in case API version varies)
-    if (!raw && data.choices?.[0]?.message?.content) {
-      raw = data.choices[0].message.content;
-    }
-
-    raw = raw.trim();
-
-    // Still empty — surface the raw response so the structure can be inspected
-    if (!raw) {
-      throw new Error(`No text found in API response. Raw keys: ${Object.keys(data).join(', ')}. First output item type: ${data.output?.[0]?.type ?? 'none'}.`);
-    }
-
-    // Strip markdown code fences the model may have added
-    raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-
-    let analysis;
-    try {
-      analysis = JSON.parse(raw);
-    } catch {
-      // Model may have prepended reasoning text before the JSON block —
-      // find the first { ... } that spans the whole object.
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) {
-        analysis = JSON.parse(match[0]);
-      } else {
-        throw new Error('Could not parse Grok\'s response as JSON. Try again or switch to a different model in Settings.');
+    // Set a safety timeout in case the service worker is interrupted
+    clearAnalysisTimeout();
+    analysisTimeoutId = setTimeout(() => {
+      if (resultArea.querySelector('.spinner')) {
+        showError('Analysis took too long. Please try again.');
+        setButtons(true);
       }
-    }
-
-    // Sanitize required fields
-    analysis.trustScore   = Math.max(0, Math.min(100, parseInt(analysis.trustScore) || 50));
-    analysis.riskLevel    = ['LOW','MEDIUM','HIGH','CRITICAL'].includes(analysis.riskLevel) ? analysis.riskLevel : 'MEDIUM';
-    analysis.issues       = Array.isArray(analysis.issues) ? analysis.issues : [];
-    analysis.summary      = analysis.summary      || 'Analysis complete.';
-    analysis.recommendation = analysis.recommendation || '';
-
-    // Attach metadata
-    currentAnalysis = {
-      ...analysis,
-      type,
-      url:       await getCurrentUrl(),
-      model:     usedModel,
-      timestamp: Date.now()
-    };
-
-    // Persist to history
-    await saveToHistory(currentAnalysis);
-
-    // Update toolbar badge
-    if (showBadge !== false) {
-      chrome.runtime.sendMessage({ type: 'updateBadge', score: analysis.trustScore });
-    }
-
-    renderAnalysis(currentAnalysis);
+    }, 120000);
 
   } catch (err) {
     showError(err.message);
-  } finally {
     setButtons(true);
   }
 }
@@ -320,11 +243,11 @@ ${content}`;
 // ── Rendering ─────────────────────────────────────────────────
 function renderAnalysis(a) {
   const { trustScore, riskLevel, summary, issues, recommendation, type } = a;
-  const color       = scoreColor(trustScore);
-  const circumf     = 2 * Math.PI * 33;
-  const dashOffset  = circumf - (trustScore / 100) * circumf;
-  const riskIcon    = riskLevel === 'LOW' ? '✅' : riskLevel === 'MEDIUM' ? '⚠️' : '🚨';
-  const typeLabel   = type === 'selection' ? '✂️ Selected Text' : '📄 Full Page';
+  const color      = scoreColor(trustScore);
+  const circumf    = 2 * Math.PI * 33;
+  const dashOffset = circumf - (trustScore / 100) * circumf;
+  const riskIcon   = riskLevel === 'LOW' ? '✅' : riskLevel === 'MEDIUM' ? '⚠️' : '🚨';
+  const typeLabel  = type === 'selection' ? '✂️ Selected Text' : '📄 Full Page';
 
   const issuesHtml = issues.length > 0
     ? `<div class="section-title">⚠️ Issues Found (${issues.length})</div>
@@ -333,7 +256,7 @@ function renderAnalysis(a) {
            <div class="issue-item" style="border-left-color:${color}">
              <div class="issue-claim">${esc(iss.claim)}</div>
              <div class="issue-verdict">${esc(iss.verdict)}</div>
-             ${iss.source ? `<div class="issue-source">📎 ${esc(iss.source)}</div>` : ''}
+             ${iss.source ? `<div class="issue-source">📎 ${renderSource(iss.source)}</div>` : ''}
            </div>`).join('')}
        </div>`
     : `<div class="section-title">✅ No Issues Detected</div>
@@ -342,7 +265,7 @@ function renderAnalysis(a) {
        </div>`;
 
   resultArea.innerHTML = `
-    <div class="analysis-tag">${typeLabel} · ${a.model || ''}</div>
+    <div class="analysis-tag">${typeLabel} · ${esc(a.model || '')}</div>
 
     <div class="trust-card">
       <div class="score-ring">
@@ -378,9 +301,35 @@ function renderAnalysis(a) {
   `;
 
   document.getElementById('copyBtn').addEventListener('click', () => copyReport(a));
-  document.getElementById('reanalyzeBtn').addEventListener('click', () =>
-    runAnalysis(a.type, a.type === 'selection' ? selectionText : null)
-  );
+
+  // Re-analyze: if this is a historical (different-URL) page result, open the
+  // original URL in a new tab and queue a pending check there.
+  document.getElementById('reanalyzeBtn').addEventListener('click', async () => {
+    if (a.type === 'page' && a.url) {
+      try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (a.url !== tab.url) {
+          // Open the original article URL in a new tab and trigger auto-analysis
+          await chrome.storage.session.set({ pendingCheck: { type: 'page' } });
+          chrome.tabs.create({ url: a.url });
+          return;
+        }
+      } catch {}
+    }
+    runAnalysis(a.type, a.type === 'selection' ? selectionText : null);
+  });
+}
+
+// Render a source field: URL → clickable link, plain text → escaped text
+function renderSource(source) {
+  if (!source) return '';
+  const s = source.trim();
+  // Only allow http/https to prevent javascript: injection
+  if (/^https?:\/\//i.test(s)) {
+    const display = s.length > 65 ? s.substring(0, 62) + '…' : s;
+    return `<a href="${esc(s)}" target="_blank" rel="noopener noreferrer" class="source-link">${esc(display)}</a>`;
+  }
+  return esc(s);
 }
 
 function showWelcome() {
@@ -398,7 +347,8 @@ function showLoading(msg) {
     <div class="status-view">
       <div class="spinner"></div>
       <div>${msg}</div>
-      <div class="status-sub">Using Grok AI + Live Search for real-time fact-checking…</div>
+      <div class="status-sub">Using Grok AI + Live Search for real-time fact-checking…<br>
+      <em style="font-size:9px;margin-top:4px;display:block">Analysis continues even if you switch tabs.</em></div>
     </div>`;
 }
 
@@ -459,12 +409,6 @@ https://github.com/rod-trent/GrokDisinformationChecker`;
 }
 
 // ── History ───────────────────────────────────────────────────
-async function saveToHistory(analysis) {
-  const { history = [] } = await chrome.storage.local.get('history');
-  history.unshift(analysis);
-  await chrome.storage.local.set({ history: history.slice(0, 20) });
-}
-
 async function renderHistory() {
   const { history = [] } = await chrome.storage.local.get('history');
   const list = document.getElementById('historyList');
@@ -479,14 +423,23 @@ async function renderHistory() {
   }
 
   list.innerHTML = history.map((item, idx) => {
-    const color = scoreColor(item.trustScore);
-    const host  = item.url
-      ? (() => { try { return new URL(item.url).hostname; } catch { return item.url; } })()
-      : 'Selected Text';
-    const date  = new Date(item.timestamp).toLocaleDateString(undefined, {
+    const color    = scoreColor(item.trustScore);
+    const typeIcon = item.type === 'selection' ? '✂️' : '📄';
+    const date     = new Date(item.timestamp).toLocaleDateString(undefined, {
       month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
-    const typeIcon = item.type === 'selection' ? '✂️' : '📄';
+
+    // Show hostname for page analyses, "Selected Text" for selections
+    let host = 'Selected Text';
+    let linkHtml = '';
+    if (item.type !== 'selection' && item.url) {
+      try {
+        host = new URL(item.url).hostname;
+      } catch { host = item.url.substring(0, 30); }
+      // Direct link to the original article (opens in new tab)
+      linkHtml = `<a class="hist-link" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer"
+                     title="${esc(item.url)}">🔗</a>`;
+    }
 
     return `
       <div class="history-item" data-idx="${idx}">
@@ -494,7 +447,7 @@ async function renderHistory() {
           ${item.trustScore}
         </div>
         <div class="hist-info">
-          <div class="hist-url">${esc(host)}</div>
+          <div class="hist-url">${esc(host)} ${linkHtml}</div>
           <div class="hist-date">${date} · ${typeIcon}</div>
         </div>
         <div class="hist-risk" style="color:${color}">${item.riskLevel}</div>
@@ -502,7 +455,10 @@ async function renderHistory() {
   }).join('');
 
   list.querySelectorAll('.history-item').forEach(el => {
-    el.addEventListener('click', () => {
+    el.addEventListener('click', (e) => {
+      // Don't intercept clicks on the direct-link button
+      if (e.target.closest('.hist-link')) return;
+
       const item = history[parseInt(el.dataset.idx)];
       currentAnalysis = item;
       // Switch to Analyze tab

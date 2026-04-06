@@ -208,6 +208,10 @@
     .issue-claim   { font-weight: 700; font-size: 12px; margin-bottom: 4px; }
     .issue-verdict { font-size: 11px; color: var(--muted); line-height: 1.45; }
     .issue-source  { font-size: 10px; color: var(--accent); margin-top: 5px; }
+    .source-link   {
+      color: var(--accent); text-decoration: none; word-break: break-all;
+    }
+    .source-link:hover { text-decoration: underline; }
 
     /* ── Recommendation ── */
     .recommendation {
@@ -261,7 +265,9 @@
       font-weight: 800; font-size: 12px; flex-shrink: 0;
     }
     .hist-info { flex: 1; min-width: 0; }
-    .hist-url  { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hist-url  { font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
+    .hist-link { text-decoration: none; font-size: 11px; flex-shrink: 0; opacity: .55; transition: opacity .15s; line-height: 1; }
+    .hist-link:hover { opacity: 1; }
     .hist-date { font-size: 10px; color: var(--muted); margin-top: 2px; }
     .hist-risk { font-size: 10px; font-weight: 800; text-transform: uppercase; }
 

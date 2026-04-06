@@ -314,11 +314,23 @@
       </label>
     </div>
 
+    <!-- Auto-check pages -->
+    <div class="setting-row">
+      <div class="setting-text">
+        <div class="label">Auto-check Pages</div>
+        <div class="desc">Automatically analyze each page for disinformation as you browse (off by default — uses API credits on every page load)</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="autoCheck">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
     <!-- Show badge -->
     <div class="setting-row">
       <div class="setting-text">
         <div class="label">Show Trust-Score Badge</div>
-        <div class="desc">Display the trust score on the extension toolbar icon after analysis</div>
+        <div class="desc">Display the trust score on the toolbar icon for auto-checked pages (clears when you switch tabs)</div>
       </div>
       <label class="toggle">
         <input type="checkbox" id="showBadge" checked>

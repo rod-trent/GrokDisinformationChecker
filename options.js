@@ -2,7 +2,7 @@
 // options.js  –  Grok Disinformation Checker settings page
 // ============================================================
 
-const STORAGE_KEYS = ['apiKey', 'model', 'liveSearch', 'autoDetectSelection', 'showBadge', 'theme'];
+const STORAGE_KEYS = ['apiKey', 'model', 'liveSearch', 'autoDetectSelection', 'autoCheck', 'showBadge', 'theme'];
 
 // ── Theme helpers ─────────────────────────────────────────────
 function resolveTheme(stored) {
@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('modelSelect').value              = s.model                 ?? 'grok-4-fast-reasoning';
   document.getElementById('liveSearch').checked             = s.liveSearch            !== false;
   document.getElementById('autoDetectSelection').checked    = s.autoDetectSelection   !== false;
+  document.getElementById('autoCheck').checked              = s.autoCheck             === true;   // off by default
   document.getElementById('showBadge').checked              = s.showBadge             !== false;
 });
 
@@ -124,6 +125,7 @@ document.getElementById('saveSettingsBtn').addEventListener('click', async () =>
     model:                document.getElementById('modelSelect').value,
     liveSearch:           document.getElementById('liveSearch').checked,
     autoDetectSelection:  document.getElementById('autoDetectSelection').checked,
+    autoCheck:            document.getElementById('autoCheck').checked,
     showBadge:            document.getElementById('showBadge').checked
     // theme is saved immediately on click — no need to include here
   });
@@ -145,6 +147,7 @@ document.getElementById('clearAllBtn').addEventListener('click', async () => {
   document.getElementById('modelSelect').value              = 'grok-4-fast-reasoning';
   document.getElementById('liveSearch').checked             = true;
   document.getElementById('autoDetectSelection').checked    = true;
+  document.getElementById('autoCheck').checked              = false;
   document.getElementById('showBadge').checked              = true;
   setActivePicker('system');
   applyTheme('system');

@@ -16,13 +16,16 @@ A browser extension for **Chrome** and **Microsoft Edge** that instantly analyze
 | ✂️ **Selected Text Analysis** | Highlight any text, right-click, and check just that snippet |
 | 📊 **Trust Score (0–100)** | Animated ring gauge — color-coded from green (safe) to red (critical) |
 | 🔍 **Live Search** | Grok searches the web in real time to cross-reference facts as it analyzes |
-| 🕐 **Analysis History** | Last 20 analyses stored locally and browsable inside the extension |
+| 🕐 **Analysis History** | Last 20 analyses stored locally — each entry links back to the original article |
+| 🔗 **Source Links** | Clickable links on each issue card take you to more accurate information |
 | 📋 **Copy Report** | Export a full plain-text analysis report to your clipboard |
 | ⌨️ **Keyboard Shortcut** | Press `Alt+Shift+G` to check the current page instantly |
 | 🖱️ **Right-Click Menu** | Context menu on any page or selection — no need to open the popup |
-| 🏷️ **Toolbar Badge** | Trust score appears on the extension icon after each analysis |
+| 🤖 **Auto-check Pages** | Optionally analyze every page automatically as you browse (off by default) |
+| 🏷️ **Per-tab Toolbar Badge** | Trust score badge is tab-specific — only shows when Auto-check is enabled |
 | 🎨 **Dark / Light / System Theme** | Follows your OS or choose your preferred appearance in Settings |
-| ⚙️ **Settings Page** | Configure API key, model, live search, badge, theme, and history |
+| ⚙️ **Settings Page** | Configure API key, model, live search, auto-check, badge, theme, and history |
+| ⏳ **Background Analysis** | Analysis continues running even if you switch tabs while waiting for results |
 
 ---
 
@@ -88,6 +91,8 @@ A browser extension for **Chrome** and **Microsoft Edge** that instantly analyze
 ### Check a Full Page
 Click the 🔍 toolbar icon → **📄 Check Full Page**.
 
+The analysis runs in the background — you can switch tabs while waiting and the results will be ready when you return.
+
 ### Check Selected Text
 Highlight any text on a page → either:
 - Click **✂️ Check Selection** in the popup, or
@@ -95,6 +100,9 @@ Highlight any text on a page → either:
 
 ### Keyboard Shortcut
 Press **`Alt+Shift+G`** anywhere to trigger a full-page check.
+
+### Auto-check Pages
+Enable **Auto-check Pages** in Settings to have every page you visit automatically analyzed in the background. The trust-score badge on the toolbar icon updates per tab and clears when you navigate away.
 
 ### Reading the Results
 
@@ -108,8 +116,14 @@ Press **`Alt+Shift+G`** anywhere to trigger a full-page check.
 Each analysis includes:
 - A **summary** of findings
 - Individual **issue cards** listing specific claims and verdicts
-- **Source references** where Grok found supporting evidence
+- **Clickable source links** — click any 📎 source to read more accurate information in a new tab
 - A **recommendation** for the reader
+
+### Using History
+The **🕐 History** tab shows your last 20 analyses. Each entry has:
+- A **🔗 link icon** that opens the original article in a new tab
+- Clicking the row loads the full analysis result
+- The **🔄 Re-analyze** button on a historical result opens the original URL in a new tab and auto-queues a fresh check
 
 ---
 
@@ -123,10 +137,13 @@ Open Settings via the **⚙️** icon in the popup or by right-clicking the exte
 | AI Model | Grok 4 Fast Reasoning | Model used for analysis |
 | Live Search | On | Real-time web search to verify claims |
 | Auto-detect Selection | On | Show "Check Selection" when text is highlighted |
-| Show Badge | On | Display trust score on toolbar icon |
+| **Auto-check Pages** | **Off** | **Automatically analyze every page you visit** |
+| Show Badge | On | Display trust score badge (only when Auto-check is enabled) |
 | Appearance | System | Dark / Light / System (follows OS) |
 
 > **Note:** Live Search requires a **grok-4 family model**. If you select an older model with Live Search enabled, it automatically upgrades to `grok-4-fast-reasoning` for that request.
+
+> **Note:** Auto-check Pages will use API credits on every page load. Enable it intentionally and monitor your xAI API usage.
 
 ---
 
@@ -137,7 +154,7 @@ GrokDisinformationChecker/
 ├── manifest.json          # Extension manifest (MV3)
 ├── popup.html             # Extension popup UI
 ├── popup.js               # Popup logic — analysis, history, theming
-├── background.js          # Service worker — context menus, shortcuts, badge
+├── background.js          # Service worker — analysis engine, auto-check, badge, tab tracking
 ├── options.html           # Settings page UI
 ├── options.js             # Settings page logic
 ├── privacy.html           # Privacy policy (required for store submission)
@@ -167,6 +184,23 @@ See the full [Privacy Policy](privacy.html) for details.
 - **xAI Grok API** — [Responses API](https://docs.x.ai/docs) (`/v1/responses`)
 - **Live Search** via `web_search` Agent Tool (grok-4 family only)
 - Vanilla HTML / CSS / JavaScript — no build step, no dependencies
+
+---
+
+## 📋 Changelog
+
+### v1.2.0
+- **Background analysis** — API call now runs in the service worker; switching tabs no longer stops an in-progress check
+- **History URL links** — each history entry shows a 🔗 icon to open the original article; Re-analyze from history opens the saved URL in a new tab
+- **Clickable source links** — issue cards now show clickable `https://` links to more accurate sources
+- **Auto-check Pages** — new opt-in setting to automatically analyze every page you navigate to (off by default)
+- **Per-tab badge** — toolbar badge is now tab-specific and only shown when Auto-check is enabled; clears on tab switch or navigation
+
+### v1.1.0
+- Full UI overhaul (dark/light/system theme, animated trust ring)
+- Switched to xAI Responses API (`/v1/responses`) with Live Search support
+- Added Analysis History (last 20), Copy Report, and toolbar badge
+- Keyboard shortcut `Alt+Shift+G`
 
 ---
 

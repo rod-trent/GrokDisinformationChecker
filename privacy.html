@@ -180,8 +180,8 @@
       <em>currently active tab</em>, only when you initiate an analysis.
     </li>
     <li>
-      <strong>scripting</strong> — used to extract visible text from the active tab's DOM
-      when you request an analysis.
+      <strong>scripting</strong> — used to extract visible text from a tab's DOM
+      when an analysis is requested (either manually or via Auto-check).
     </li>
     <li>
       <strong>storage</strong> — used to store your API key, settings, and local history
@@ -191,9 +191,22 @@
       <strong>contextMenus</strong> — adds a right-click menu option so you can quickly
       check highlighted text without opening the popup.
     </li>
+    <li>
+      <strong>tabs</strong> — used to detect when you navigate to a new page (so the
+      toolbar badge can be cleared) and to support the optional Auto-check Pages feature.
+      Tab URLs are read only for this purpose and are never transmitted externally.
+    </li>
+    <li>
+      <strong>Host permission: &lt;all_urls&gt;</strong> — required for the optional
+      <em>Auto-check Pages</em> feature, which extracts page text from any site you visit
+      in order to run an automatic analysis. This permission is only exercised when you
+      enable Auto-check in Settings. Page content is still sent exclusively to
+      <code>api.x.ai</code> — no other host ever receives your data.
+    </li>
   </ul>
-  <p>No "broad host permissions" are requested; the only allowed host is
-  <code>https://api.x.ai/*</code>.</p>
+  <p>The only external host this extension communicates with is
+  <code>https://api.x.ai</code> (the Grok API). No page content or personal data is
+  sent anywhere else.</p>
 
   <!-- 6 -->
   <h2 id="retention">6. Data Retention</h2>
@@ -235,7 +248,7 @@
   </p>
 
   <footer>
-    Grok Disinformation Checker &nbsp;·&nbsp; v1.1.0 &nbsp;·&nbsp;
+    Grok Disinformation Checker &nbsp;·&nbsp; v1.2.0 &nbsp;·&nbsp;
     <a href="https://github.com/rod-trent/GrokDisinformationChecker" target="_blank">GitHub</a>
   </footer>
 
